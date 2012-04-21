@@ -1,0 +1,35 @@
+{
+    "name" : "awssum-scripts",
+    "description" : "Examples of non-trivial scripts for node-awssum which can be used standalone.",
+    "version" : "0.1.0",
+    "author" : {
+        "name" : "Andrew Chilton",
+        "email" : "chilts@appsattic.com",
+        "url" : "http://www.chilts.org/"
+    },
+    "homepage" : "https://github.com/appsattic/node-awssum-scripts",
+    "contributors" : [
+        
+    ],
+    "devDependencies" : {},
+    "dependencies" : {
+        "eyes" : ">= 0.1.1",
+        "awssum" : ">= 0.4.1",
+        "optimist" : ">= 0.3.1"
+    },
+    "engines" : {
+        "node" : ">= 0.6.0"
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/appsattic/node-awssum-scripts.git"
+    },
+   "bugs" : {
+        "url" : "http://github.com/appsattic/node-awssum-scripts/issues",
+        "mail" : "chilts@appsattic.com"
+    },
+    "licenses" : [{
+        "type" : "MIT",
+        "url" : "http://github.com/appsattic/node-awssum-scripts/raw/master/LICENSE"
+    }]
+}
