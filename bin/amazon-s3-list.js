@@ -41,6 +41,8 @@ console.log();
 var options = {
     BucketName : argv.bucket,
 };
+var fileCount = 0;
+var byteCount = 0;
 
 console.log('Listing Bucket:');
 doRequest();
@@ -50,6 +52,8 @@ doRequest();
 function printItems(contents) {
     contents.forEach(function(v, i) {
         console.log('' + v.LastModified + ' ' + v.ETag.substr(1, 32) + ' ' + v.Key + ' (' + v.Size + ')');
+        fileCount++;
+        byteCount += parseInt(v.Size, 10);
     });
 }
 
@@ -80,6 +84,12 @@ function doRequest(marker) {
 
         if (data.Body.ListBucketResult.IsTruncated === 'true') {
             doRequest(data.Body.ListBucketResult.Contents[data.Body.ListBucketResult.Contents.length-1].Key);
+        }
+        else {
+            // there are no more files to list
+            console.log('\nTotals:');
+            console.log('- Files           : ' + fileCount);
+            console.log('- Size            : ' + byteCount + ' bytes');
         }
     });
 }
