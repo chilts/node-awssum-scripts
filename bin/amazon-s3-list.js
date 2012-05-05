@@ -3,7 +3,7 @@
 
 var fs = require('fs');
 
-var inspect   = require('eyes').inspector();
+var inspect   = require('eyes').inspector({ maxLength : 1024*1024 });
 var awssum    = require('awssum');
 var amazon    = awssum.load('amazon/amazon');
 var s3Service = awssum.load('amazon/s3');
@@ -43,23 +43,45 @@ var options = {
 };
 
 console.log('Listing Bucket:');
-s3.ListObjects(options, function(err, data) {
-    if (err) {
-        inspect(err, 'Error');
-        return;
-    }
+doRequest();
 
-    if ( argv.d || argv.debug ) {
-        inspect(data.StatusCode, 'StatusCode');
-        inspect(data.Headers, 'Headers');
-        inspect(data.Body, 'Body');
-    }
+// --------------------------------------------------------------------------------------------------------------------
 
-    data.Body.ListBucketResult.Contents.forEach(function(v, i) {
-        // inspect(v, 'Item');
+function printItems(contents) {
+    contents.forEach(function(v, i) {
         console.log('' + v.LastModified + ' ' + v.ETag.substr(1, 32) + ' ' + v.Key + ' (' + v.Size + ')');
     });
+}
 
-});
+function doRequest(marker) {
+    var options = {
+        BucketName : argv.bucket,
+    };
+    if ( marker ) {
+        if ( argv.d || argv.debug ) {
+            console.log('Doing request at marker ' + marker);
+        }
+        options.Marker = marker;
+    }
+
+    s3.ListObjects(options, function(err, data) {
+        if (err) {
+            inspect(err, 'Error');
+            return;
+        }
+
+        if ( argv.d || argv.debug ) {
+            inspect(data.StatusCode, 'StatusCode');
+            inspect(data.Headers, 'Headers');
+            inspect(data.Body, 'Body');
+        }
+
+        printItems(data.Body.ListBucketResult.Contents);
+
+        if (data.Body.ListBucketResult.IsTruncated === 'true') {
+            doRequest(data.Body.ListBucketResult.Contents[data.Body.ListBucketResult.Contents.length-1].Key);
+        }
+    });
+}
 
 // --------------------------------------------------------------------------------------------------------------------
