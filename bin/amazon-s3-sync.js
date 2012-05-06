@@ -107,6 +107,41 @@ function checkItemIsLocal(item, callback) {
     });
 }
 
+function checkMd5IsSame(item, callback) {
+    fmt.field('ComparingMD5s', item.Key + ' (' + item.ETag + ')' );
+
+    // get the MD5 of this file (we know it exists)
+    fs.readFile(item.Key, function(err, data) {
+        // get the MD5 of this file
+        var md5;
+
+        // get the MD5 of this file
+        var md5 = crypto.createHash('md5');
+        var stream = fs.ReadStream(item.Key);
+        stream.on('data', function(data) {
+            md5.update(data);
+        });
+        stream.on('end', function() {
+            var md5hex = md5.digest('hex');
+            // fmt.field('Md5OfKey', item.Key + '=' + item.ETag);
+            // fmt.field('Md5OfFile', item.Key + '=' + md5hex);
+            fmt.field('ComparingMd5s', item.Key + ' (file="' + md5hex + '", key=' + item.ETag + ')');
+
+            // check if the calculated MD5 is the same as the ETag in the S3 item
+            if ( item.ETag === '"' + md5hex + '"' ) {
+                // nothing to do
+                fmt.field('Md5OfFileAndKeySame', item.Key);
+            }
+            else {
+                // different, just tell the user they are different
+                fmt.field('MD5Mismatch', item.Key);
+            }
+            callback();
+        });
+
+    });
+}
+
 var dirCache = {};
 function checkLocalDirExists(item, callback) {
     // just make sure this directory exists
@@ -159,41 +194,6 @@ function createTmpFile(item, callback) {
         // add to the download queue
         downloadItemQueue.push(item);
         callback();
-    });
-}
-
-function checkMd5IsSame(item, callback) {
-    fmt.field('ComparingMD5s', item.Key + ' (' + item.ETag + ')' );
-
-    // get the MD5 of this file (we know it exists)
-    fs.readFile(item.Key, function(err, data) {
-        // get the MD5 of this file
-        var md5;
-
-        // get the MD5 of this file
-        var md5 = crypto.createHash('md5');
-        var stream = fs.ReadStream(item.Key);
-        stream.on('data', function(data) {
-            md5.update(data);
-        });
-        stream.on('end', function() {
-            var md5hex = md5.digest('hex');
-            // fmt.field('Md5OfKey', item.Key + '=' + item.ETag);
-            // fmt.field('Md5OfFile', item.Key + '=' + md5hex);
-            fmt.field('ComparingMd5s', item.Key + ' (file="' + md5hex + '", key=' + item.ETag + ')');
-
-            // check if the calculated MD5 is the same as the ETag in the S3 item
-            if ( item.ETag === '"' + md5hex + '"' ) {
-                // nothing to do
-                fmt.field('Md5OfFileAndKeySame', item.Key);
-            }
-            else {
-                // different, just tell the user they are different
-                fmt.field('MD5Mismatch', item.Key);
-            }
-            callback();
-        });
-
     });
 }
 
