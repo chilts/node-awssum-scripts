@@ -44,9 +44,12 @@ fmt.field('Concurrency', argv.concurrency);
 fmt.line();
 
 // set up some queues so that we can check, download and upload things
-var checkItemIsLocalQueue = async.queue(checkItemIsLocal, argv.concurrency);
-var downloadItemQueue     = async.queue(downloadItem, argv.concurrency);
-var checkMd5IsSameQueue   = async.queue(checkMd5IsSame, argv.concurrency);
+var checkItemIsLocalQueue    = async.queue(checkItemIsLocal, argv.concurrency);
+var checkMd5IsSameQueue      = async.queue(checkMd5IsSame, argv.concurrency);
+// seems to have weird interactions if called more than once at a time
+var checkLocalDirExistsQueue = async.queue(checkLocalDirExists, 1);
+var createTmpFileQueue       = async.queue(createTmpFile, argv.concurrency);
+var downloadItemQueue        = async.queue(downloadItem, argv.concurrency);
 
 s3BucketList(argv.bucket, function(items) {
     fmt.field('ItemCount', items.length);
@@ -56,7 +59,7 @@ s3BucketList(argv.bucket, function(items) {
     items.forEach(function(item, i) {
         // ignore any keys that look like directories (the ones that the Amazon AWS Console creates)
         if ( item.Size === '0' && item.Key.charAt(item.Key.length-1) === '/' ) {
-            fmt.field('IgnoringKey', 'Key looks like a directory: ' + item.Key);
+            fmt.field('IgnoringDirKey', item.Key);
             return;
         }
 
@@ -83,7 +86,7 @@ function checkItemIsLocal(item, callback) {
         if ( err ) {
             // this file doesn't exist locally, so push it onto the download queue
             fmt.field('NoFileExistsForKey', item.Key);
-            downloadItemQueue.push(item);
+            checkLocalDirExistsQueue.push(item);
             callback();
             return;
         }
@@ -100,6 +103,61 @@ function checkItemIsLocal(item, callback) {
         // filesizes are the same, so check the MD5s are the same
         fmt.field('FileSizeSameAsKey', item.Key);
         checkMd5IsSameQueue.push(item);
+        callback();
+    });
+}
+
+var dirCache = {};
+function checkLocalDirExists(item, callback) {
+    // just make sure this directory exists
+    var dirname = item.Key.substr(0, item.Key.lastIndexOf('/'));
+    fmt.field('CheckingDirname', dirname + ' for key ' + item.Key);
+
+    fs.stat(dirname, function(err, stats) {
+        if ( err ) {
+            // nothing here
+            mkdirp(dirname, function (err) {
+                if ( err ) {
+                    fmt.field('ErrMakingDir', err);
+                    callback();
+                    return;
+                }
+                fmt.field('DirCreated', item.Key);
+                createTmpFileQueue.push(item);
+                callback();
+            });
+            return;
+        }
+
+        if ( !stats.isDirectory() ) {
+            fmt.field('NotADirectory', dirname + '/');
+            callback();
+            return;
+        }
+
+        // all fine
+        fmt.field('DirOk', item.Key);
+        createTmpFileQueue.push(item);
+        callback();
+    });
+}
+
+function createTmpFile(item, callback) {
+    tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid, keep : true }, function(err, tmpfile, fd) {
+        if ( err ) {
+            fmt.field('TmpFileError', err);
+            callback();
+            return;
+        }
+
+        fmt.field('TmpFileCreated', tmpfile);
+
+        // save these details onto the item
+        item.tmpfile = tmpfile;
+        item.fd = fd;
+
+        // add to the download queue
+        downloadItemQueue.push(item);
         callback();
     });
 }
@@ -154,56 +212,37 @@ function downloadItem(item, callback) {
 
         fmt.field('FileDownloaded', item.Key);
 
-        tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid, keep : true }, function(err, tmpfile, fd) {
+        fs.write(item.fd, data.Body, 0, data.Body.length, 0, function(err, written, buffer) {
             if ( err ) {
-                fmt.field('MkTempError', err);
+                fmt.field('ErrWritingFile', err);
                 callback();
                 return;
             }
 
-            fmt.field('TmpFileCreated', tmpfile);
+            fmt.field('Written', '' + written + ' bytes to tmpfile' );
 
-            fs.write(fd, data.Body, 0, data.Body.length, 0, function(err, written, buffer) {
+            // all ok, now close the file
+            fs.close(item.fd, function(err) {
                 if ( err ) {
-                    fmt.field('ErrWritingFile', err);
+                    fmt.field('ErrClosingFile', err);
                     callback();
                     return;
                 }
 
-                fmt.field('Written', '' + written + ' bytes to tmpfile' );
+                fmt.field('FileClosed', item.tmpfile);
 
-                // all ok, now close the file
-                fs.close(fd, function(err) {
+                // finally, let's move it into place
+                fs.rename(item.tmpfile, item.Key, function(err) {
                     if ( err ) {
-                        fmt.field('ErrClosingFile', err);
+                        fmt.field('ErrRenamingTmpFileToKey', err);
                         callback();
                         return;
                     }
 
-                    fmt.field('FileClosed', tmpfile);
+                    fmt.field('FileRenamed', item.tmpfile + ' -> ' + item.Key);
 
-                    // make sure the directory exists
-                    mkdirp(item.Key.substr(0, item.Key.lastIndexOf('/')), function (err) {
-                        if ( err ) {
-                            fmt.field('ErrMakingDir', err);
-                            callback();
-                            return;
-                        }
-
-                        // finally, let's move it into place
-                        fs.rename(tmpfile, item.Key, function(err) {
-                            if ( err ) {
-                                fmt.field('ErrRenamingTmpFileToKey', err);
-                                callback();
-                                return;
-                            }
-
-                            fmt.field('FileRenamed', tmpfile + ' -> ' + item.Key);
-
-                            // absolutely everything went positively well!
-                            callback();
-                        });
-                    });
+                    // absolutely everything went positively well!
+                    callback();
                 });
             });
         });
