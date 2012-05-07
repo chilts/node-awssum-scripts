@@ -2,6 +2,7 @@
   "name": "awssum-scripts",
   "description": "Examples of non-trivial scripts for node-awssum which can be used standalone.",
   "version": "0.1.0",
+  "private": true,
   "author": {
     "name": "Andrew Chilton",
     "email": "chilts@appsattic.com",
