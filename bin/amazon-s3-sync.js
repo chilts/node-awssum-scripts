@@ -178,7 +178,7 @@ function checkLocalDirExists(item, callback) {
 }
 
 function createTmpFile(item, callback) {
-    tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid, keep : true }, function(err, tmpfile, fd) {
+    tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid }, function(err, tmpfile, fd) {
         if ( err ) {
             fmt.field('TmpFileError', err);
             callback();
