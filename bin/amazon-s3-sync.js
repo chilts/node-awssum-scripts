@@ -93,9 +93,8 @@ function checkItemIsLocal(item, callback) {
 
         // ok, we know there is a file, but if the filesize is different, it needs to go on the output queue
         if ( stats.size !== parseInt(item.Size, 10) ) {
-            // console.log('File in S3 and local file are of different sizes : ' + item.Key);
             fmt.field('SizeMismatch', item.Key + ' (file=' + stats.size + ', item=' + item.Size + ')');
-            // no more queues to add this item to
+            // we can't reconcile this file, the user will have to do it
             callback();
             return;
         }
@@ -123,8 +122,6 @@ function checkMd5IsSame(item, callback) {
         });
         stream.on('end', function() {
             var md5hex = md5.digest('hex');
-            // fmt.field('Md5OfKey', item.Key + '=' + item.ETag);
-            // fmt.field('Md5OfFile', item.Key + '=' + md5hex);
             fmt.field('ComparingMd5s', item.Key + ' (file="' + md5hex + '", key=' + item.ETag + ')');
 
             // check if the calculated MD5 is the same as the ETag in the S3 item
@@ -257,10 +254,14 @@ function s3BucketList(bucket, callback) {
             BucketName : argv.bucket,
         };
         if ( marker ) {
+            fmt.field('S3ListObjects', 'New request at marker ' + marker);
             if ( argv.d || argv.debug ) {
                 console.log('Doing request at marker ' + marker);
             }
             options.Marker = marker;
+        }
+        else {
+            fmt.field('S3ListObjects', 'Initial request');
         }
 
         s3.ListObjects(options, function(err, data) {
