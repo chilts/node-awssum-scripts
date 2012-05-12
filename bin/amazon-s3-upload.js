@@ -6,7 +6,7 @@ var fs = require('fs');
 var inspect   = require('eyes').inspector();
 var awssum    = require('awssum');
 var amazon    = awssum.load('amazon/amazon');
-var s3Service = awssum.load('amazon/s3');
+var S3        = awssum.load('amazon/s3');
 
 var accessKeyId     = process.env.ACCESS_KEY_ID;
 var secretAccessKey = process.env.SECRET_ACCESS_KEY;
@@ -25,7 +25,7 @@ var argv = require('optimist')
 
 // --------------------------------------------------------------------------------------------------------------------
 
-var s3 = new s3Service(accessKeyId, secretAccessKey, awsAccountId, amazon.US_EAST_1);
+var s3 = new S3(accessKeyId, secretAccessKey, awsAccountId, amazon.US_EAST_1);
 
 console.log( 'Settings:');
 if ( argv.d || argv.debug ) {
