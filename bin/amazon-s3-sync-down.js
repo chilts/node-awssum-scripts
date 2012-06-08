@@ -12,7 +12,7 @@ var mkdirp = require('mkdirp');
 var awssum    = require('awssum');
 var amazon    = awssum.load('amazon/amazon');
 var S3        = awssum.load('amazon/s3').S3;
-var common    = require('./lib/amazon-s3-common.js');
+var common    = require('../lib/amazon-s3-common.js');
 
 var accessKeyId     = process.env.ACCESS_KEY_ID;
 var secretAccessKey = process.env.SECRET_ACCESS_KEY;
