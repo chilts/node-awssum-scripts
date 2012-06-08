@@ -12,6 +12,7 @@ var mkdirp = require('mkdirp');
 var awssum    = require('awssum');
 var amazon    = awssum.load('amazon/amazon');
 var S3        = awssum.load('amazon/s3').S3;
+var common    = require('./lib/amazon-s3-common.js');
 
 var accessKeyId     = process.env.ACCESS_KEY_ID;
 var secretAccessKey = process.env.SECRET_ACCESS_KEY;
@@ -56,14 +57,19 @@ var checkLocalDirExistsQueue = async.queue(checkLocalDirExists, 1);
 var createTmpFileQueue       = async.queue(createTmpFile, argv.concurrency);
 var downloadItemQueue        = async.queue(downloadItem, argv.concurrency);
 
-s3BucketList(argv.bucket, function(items) {
-    fmt.field('ItemCount', items.length);
+common.listObjectsAll(s3, argv.bucket, function(err, objects) {
+    if (err) {
+        fmt.field('Error', err);
+        return;
+    }
+
+    fmt.field('ObjectCount', objects.length);
     fmt.line();
 
-    // now that we have the list, we can start checking to see if each of these items is also local
-    items.forEach(function(item, i) {
+    // now that we have the list, we can start checking to see if each of these objects is also local
+    objects.forEach(function(item, i) {
         // ignore any keys that look like directories (the ones that the Amazon AWS Console creates)
-        if ( item.Size === '0' && item.Key.charAt(item.Key.length-1) === '/' ) {
+        if ( item.Size === 0 && item.Key.charAt(item.Key.length-1) === '/' ) {
             fmt.field('IgnoringDirKey', item.Key);
             return;
         }
@@ -94,7 +100,7 @@ function checkItemIsLocal(item, callback) {
         }
 
         // ok, we know there is a file, but if the filesize is different, it needs to go on the output queue
-        if ( stats.size !== parseInt(item.Size, 10) ) {
+        if ( stats.size !== item.Size ) {
             fmt.field('SizeMismatch', item.Key + ' (file=' + stats.size + ', item=' + item.Size + ')');
             // we can't reconcile this file, the user will have to do it
             callback();
@@ -119,9 +125,9 @@ function checkMd5IsSame(item, callback) {
         var md5hex = md5.digest('hex');
 
         // check if the calculated MD5 is the same as the ETag in the S3 item
-        if ( item.ETag !== '"' + md5hex + '"' ) {
+        if ( item.ETag !== md5hex ) {
             // different, just tell the user they are different
-            fmt.field('MD5Mismatch', item.Key);
+            fmt.field('MD5Mismatch', item.Key + ' (object=' + item.ETag + ', file=' + md5hex + ')');
         }
         callback();
     });
