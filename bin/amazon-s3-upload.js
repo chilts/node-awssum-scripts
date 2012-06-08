@@ -25,7 +25,12 @@ var argv = require('optimist')
 
 // --------------------------------------------------------------------------------------------------------------------
 
-var s3 = new S3(accessKeyId, secretAccessKey, awsAccountId, amazon.US_EAST_1);
+var s3 = new S3({
+    accessKeyId     : accessKeyId,
+    secretAccessKey : secretAccessKey,
+    awsAccountId    : awsAccountId,
+    region          : amazon.US_EAST_1
+});
 
 console.log( 'Settings:');
 if ( argv.d || argv.debug ) {

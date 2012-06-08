@@ -38,7 +38,7 @@ var argv = require('optimist')
 var s3 = new S3(accessKeyId, secretAccessKey, awsAccountId, amazon.US_EAST_1);
 
 fmt.sep();
-fmt.title('amazon-s3-sync.js');
+fmt.title('amazon-s3-sync-down.js');
 fmt.field('Bucket', argv.bucket);
 fmt.field('Concurrency', argv.concurrency);
 fmt.line();
@@ -135,7 +135,6 @@ function checkMd5IsSame(item, callback) {
             }
             callback();
         });
-
     });
 }
 
