@@ -35,7 +35,12 @@ var argv = require('optimist')
 
 // --------------------------------------------------------------------------------------------------------------------
 
-var s3 = new S3(accessKeyId, secretAccessKey, awsAccountId, amazon.US_EAST_1);
+var s3 = new S3({
+    accessKeyId     : accessKeyId,
+    secretAccessKey : secretAccessKey,
+    awsAccountId    : awsAccountId,
+    region          : amazon.US_EAST_1
+});
 
 fmt.sep();
 fmt.title('amazon-s3-sync-down.js');
@@ -79,13 +84,10 @@ s3BucketList(argv.bucket, function(items) {
 // --------------------------------------------------------------------------------------------------------------------
 
 function checkItemIsLocal(item, callback) {
-    fmt.field('CheckKeyHasFile', item.Key);
-
     // firstly, check if the file exists
     fs.stat(item.Key, function(err, stats) {
         if ( err ) {
             // this file doesn't exist locally, so push it onto the download queue
-            fmt.field('NoFileExistsForKey', item.Key);
             checkLocalDirExistsQueue.push(item);
             callback();
             return;
@@ -100,15 +102,12 @@ function checkItemIsLocal(item, callback) {
         }
 
         // filesizes are the same, so check the MD5s are the same
-        fmt.field('FileSizeSameAsKey', item.Key);
         checkMd5IsSameQueue.push(item);
         callback();
     });
 }
 
 function checkMd5IsSame(item, callback) {
-    fmt.field('ComparingMD5s', item.Key + ' (' + item.ETag + ')' );
-
     // get the MD5 of this file (we know it exists)
     fs.readFile(item.Key, function(err, data) {
         // get the MD5 of this file
@@ -116,25 +115,15 @@ function checkMd5IsSame(item, callback) {
 
         // get the MD5 of this file
         var md5 = crypto.createHash('md5');
-        var stream = fs.ReadStream(item.Key);
-        stream.on('data', function(data) {
-            md5.update(data);
-        });
-        stream.on('end', function() {
-            var md5hex = md5.digest('hex');
-            fmt.field('ComparingMd5s', item.Key + ' (file="' + md5hex + '", key=' + item.ETag + ')');
+        md5.update(data);
+        var md5hex = md5.digest('hex');
 
-            // check if the calculated MD5 is the same as the ETag in the S3 item
-            if ( item.ETag === '"' + md5hex + '"' ) {
-                // nothing to do
-                fmt.field('Md5OfFileAndKeySame', item.Key);
-            }
-            else {
-                // different, just tell the user they are different
-                fmt.field('MD5Mismatch', item.Key);
-            }
-            callback();
-        });
+        // check if the calculated MD5 is the same as the ETag in the S3 item
+        if ( item.ETag !== '"' + md5hex + '"' ) {
+            // different, just tell the user they are different
+            fmt.field('MD5Mismatch', item.Key);
+        }
+        callback();
     });
 }
 
@@ -142,7 +131,6 @@ var dirCache = {};
 function checkLocalDirExists(item, callback) {
     // just make sure this directory exists
     var dirname = item.Key.substr(0, item.Key.lastIndexOf('/'));
-    fmt.field('CheckingDirname', dirname + ' for key ' + item.Key);
 
     fs.stat(dirname, function(err, stats) {
         if ( err ) {
@@ -153,7 +141,6 @@ function checkLocalDirExists(item, callback) {
                     callback();
                     return;
                 }
-                fmt.field('DirCreated', item.Key);
                 createTmpFileQueue.push(item);
                 callback();
             });
@@ -167,7 +154,6 @@ function checkLocalDirExists(item, callback) {
         }
 
         // all fine
-        fmt.field('DirOk', item.Key);
         createTmpFileQueue.push(item);
         callback();
     });
@@ -181,8 +167,6 @@ function createTmpFile(item, callback) {
             return;
         }
 
-        fmt.field('TmpFileCreated', tmpfile);
-
         // save these details onto the item
         item.tmpfile = tmpfile;
         item.fd = fd;
@@ -194,7 +178,6 @@ function createTmpFile(item, callback) {
 }
 
 function downloadItem(item, callback) {
-    fmt.field('Downloading', item.Key);
     var options = {
         BucketName : argv.bucket,
         ObjectName : item.Key,
@@ -206,16 +189,12 @@ function downloadItem(item, callback) {
             return;
         }
 
-        fmt.field('FileDownloaded', item.Key);
-
         fs.write(item.fd, data.Body, 0, data.Body.length, 0, function(err, written, buffer) {
             if ( err ) {
                 fmt.field('ErrWritingFile', err);
                 callback();
                 return;
             }
-
-            fmt.field('Written', '' + written + ' bytes to tmpfile' );
 
             // all ok, now close the file
             fs.close(item.fd, function(err) {
@@ -225,8 +204,6 @@ function downloadItem(item, callback) {
                     return;
                 }
 
-                fmt.field('FileClosed', item.tmpfile);
-
                 // finally, let's move it into place
                 fs.rename(item.tmpfile, item.Key, function(err) {
                     if ( err ) {
@@ -235,7 +212,7 @@ function downloadItem(item, callback) {
                         return;
                     }
 
-                    fmt.field('FileRenamed', item.tmpfile + ' -> ' + item.Key);
+                    fmt.field('FileSaved', item.tmpfile + ' -> ' + item.Key);
 
                     // absolutely everything went positively well!
                     callback();
