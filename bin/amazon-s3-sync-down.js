@@ -49,7 +49,7 @@ fmt.field('Bucket', argv.bucket);
 fmt.field('Concurrency', argv.concurrency);
 fmt.line();
 
-// set up some queues so that we can check, download and upload things
+// set up some queues so that we can get, check and download objects from S3 Buckets
 var checkItemIsLocalQueue    = async.queue(checkItemIsLocal, argv.concurrency);
 var checkMd5IsSameQueue      = async.queue(checkMd5IsSame, argv.concurrency);
 // seems to have weird interactions if called more than once at a time
@@ -79,13 +79,6 @@ common.listObjectsAll(s3, argv.bucket, function(err, objects) {
 
     // we can also start reading all the directories and c
 });
-
-// --------------------------------------------------------------------------------------------------------------------
-
-// righto, there are two things we want to do here:
-// (1) get a list of all files in this directory, and see if it exists in S3 already
-// (2) get a list of all files in S3 and check to see if they are local
-// but firstly, we need to get a list of all S3 files
 
 // --------------------------------------------------------------------------------------------------------------------
 
