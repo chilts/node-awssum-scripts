@@ -54,7 +54,6 @@ var checkItemIsLocalQueue    = async.queue(checkItemIsLocal, argv.concurrency);
 var checkMd5IsSameQueue      = async.queue(checkMd5IsSame, argv.concurrency);
 // seems to have weird interactions if called more than once at a time
 var checkLocalDirExistsQueue = async.queue(checkLocalDirExists, 1);
-var createTmpFileQueue       = async.queue(createTmpFile, argv.concurrency);
 var downloadItemQueue        = async.queue(downloadItem, argv.concurrency);
 
 common.listObjectsAll(s3, argv.bucket, function(err, objects) {
@@ -145,7 +144,7 @@ function checkLocalDirExists(item, callback) {
                     callback();
                     return;
                 }
-                createTmpFileQueue.push(item);
+                downloadItemQueue.push(item);
                 callback();
             });
             return;
@@ -158,24 +157,6 @@ function checkLocalDirExists(item, callback) {
         }
 
         // all fine
-        createTmpFileQueue.push(item);
-        callback();
-    });
-}
-
-function createTmpFile(item, callback) {
-    tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid }, function(err, tmpfile, fd) {
-        if ( err ) {
-            fmt.field('TmpFileError', err);
-            callback();
-            return;
-        }
-
-        // save these details onto the item
-        item.tmpfile = tmpfile;
-        item.fd = fd;
-
-        // add to the download queue
         downloadItemQueue.push(item);
         callback();
     });
@@ -186,43 +167,56 @@ function downloadItem(item, callback) {
         BucketName : argv.bucket,
         ObjectName : item.Key,
     };
-    s3.GetObject(options, function(err, data) {
-        if (err) {
-            fmt.field('ErrorDownloading', err);
+
+    tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid }, function(err, tmpfile, fd) {
+        if ( err ) {
+            fmt.field('TmpFileError', err);
             callback();
             return;
         }
 
-        fs.write(item.fd, data.Body, 0, data.Body.length, 0, function(err, written, buffer) {
-            if ( err ) {
-                fmt.field('ErrWritingFile', err);
+        // now download the item
+        s3.GetObject(options, function(err, data) {
+            if (err) {
+                fmt.field('ErrorDownloading', err);
                 callback();
                 return;
             }
 
-            // all ok, now close the file
-            fs.close(item.fd, function(err) {
+            fs.write(fd, data.Body, 0, data.Body.length, 0, function(err, written, buffer) {
                 if ( err ) {
-                    fmt.field('ErrClosingFile', err);
+                    fmt.field('ErrWritingFile', err);
                     callback();
                     return;
                 }
 
-                // finally, let's move it into place
-                fs.rename(item.tmpfile, item.Key, function(err) {
+                // all ok, now close the file
+                fs.close(fd, function(err) {
                     if ( err ) {
-                        fmt.field('ErrRenamingTmpFileToKey', err);
+                        fmt.field('ErrClosingFile', err);
                         callback();
                         return;
                     }
 
-                    fmt.field('FileSaved', item.tmpfile + ' -> ' + item.Key);
+                    // finally, let's move it into place
+                    fs.rename(tmpfile, item.Key, function(err) {
+                        if ( err ) {
+                            fmt.field('ErrRenamingTmpFileToKey', err);
+                            callback();
+                            return;
+                        }
 
-                    // absolutely everything went positively well!
-                    callback();
+                        fmt.field('FileSaved', tmpfile + ' -> ' + item.Key);
+
+                        // absolutely everything went positively well!
+                        callback();
+                    });
                 });
             });
         });
+
+
+
     });
 }
 
