@@ -109,6 +109,11 @@ function checkItemIsLocal(item, callback) {
 function checkMd5IsSame(item, callback) {
     // get the MD5 of this file (we know it exists)
     fs.readFile(item.Key, function(err, data) {
+        if (err) {
+            fmt.field('Error', err);
+            return;
+        }
+
         // get the MD5 of this file
         var md5;
 
