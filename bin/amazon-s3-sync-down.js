@@ -168,6 +168,8 @@ function downloadItem(item, callback) {
         ObjectName : item.Key,
     };
 
+    fmt.field('Downloading', item.Key);
+
     tmp.file({ template : '/tmp/tmp-XXXXXXXX.' + process.pid }, function(err, tmpfile, fd) {
         if ( err ) {
             fmt.field('TmpFileError', err);

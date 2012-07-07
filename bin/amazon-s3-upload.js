@@ -44,6 +44,8 @@ if ( argv.d || argv.debug ) {
 console.log( '- Bucket          : ', argv.bucket);
 console.log( '- Filename        : ', argv.filename);
 console.log();
+console.log(argv);
+console.log();
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -57,7 +59,7 @@ fs.stat(argv.filename, function(err, file_info) {
     console.log('- uid             : ', file_info.uid);
     console.log('- gid             : ', file_info.gid);
     console.log('- inode           : ', file_info.ino);
-    console.log('- ctima           : ', file_info.ctime);
+    console.log('- ctime           : ', file_info.ctime);
     console.log('- mtime           : ', file_info.mtime);
     console.log();
 
