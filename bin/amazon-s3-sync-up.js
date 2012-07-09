@@ -50,6 +50,8 @@ fmt.field('Bucket', argv.bucket);
 fmt.field('Concurrency', argv.concurrency);
 fmt.line();
 
+// --------------------------------------------------------------------------------------------------------------------
+
 // set up some queues which we can put things onto
 var s3Objects = {};
 var checkFileIsInS3Queue = async.queue(checkFileIsInS3, argv.concurrency);

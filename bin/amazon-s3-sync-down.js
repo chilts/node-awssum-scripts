@@ -49,6 +49,8 @@ fmt.field('Bucket', argv.bucket);
 fmt.field('Concurrency', argv.concurrency);
 fmt.line();
 
+// --------------------------------------------------------------------------------------------------------------------
+
 // set up some queues so that we can get, check and download objects from S3 Buckets
 var checkItemIsLocalQueue    = async.queue(checkItemIsLocal, argv.concurrency);
 var checkMd5IsSameQueue      = async.queue(checkMd5IsSame, argv.concurrency);
