@@ -224,49 +224,4 @@ function downloadItem(item, callback) {
     });
 }
 
-function s3BucketList(bucket, callback) {
-    var items = [];
-
-    function doRequest(marker) {
-        var options = {
-            BucketName : argv.bucket,
-        };
-        if ( marker ) {
-            fmt.field('S3ListObjects', 'New request at marker ' + marker);
-            if ( argv.d || argv.debug ) {
-                console.log('Doing request at marker ' + marker);
-            }
-            options.Marker = marker;
-        }
-        else {
-            fmt.field('S3ListObjects', 'Initial request');
-        }
-
-        s3.ListObjects(options, function(err, data) {
-            if (err) {
-                console.log('Error:', err);
-                process.exit(1);
-            }
-
-            // loop through all the items and add them on to our saved list
-            data.Body.ListBucketResult.Contents.forEach(function(v, i) {
-                items.push(v);
-            });
-
-            // if we have any more, call
-            if (data.Body.ListBucketResult.IsTruncated === 'true') {
-                doRequest(data.Body.ListBucketResult.Contents[data.Body.ListBucketResult.Contents.length-1].Key);
-            }
-            else {
-                // all finished
-                callback(items);
-            }
-        });
-
-    }
-
-    // start the recursion off
-    doRequest();
-}
-
 // --------------------------------------------------------------------------------------------------------------------

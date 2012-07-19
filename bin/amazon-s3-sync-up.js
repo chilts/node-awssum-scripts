@@ -70,20 +70,22 @@ common.listObjectsAll(s3, argv.bucket, function(err, objects) {
         s3Objects[object.Key] = object;
     });
 
-    // console.log(s3Objects);
-
     // get all the files in this directory down
+    fmt.field('WalkingDir', 'Started');
     var emitter = walk('./');
+
     emitter.on('file', function(filename, stat) {
         var relativeFile = filename.substr(process.cwd().length + 1);
 
         // ignore backup files
         if ( relativeFile.match(/~$/) ) {
+            fmt.field('IgnoringBackup', relativeFile);
             return;
         }
 
-        // ignore .git files
-        if ( relativeFile.match(/^\.git\//) ) {
+        // ignore .dotfiles files
+        if ( relativeFile.match(/^\./) ) {
+            fmt.field('IgnorningDotFile', relativeFile);
             return;
         }
 
@@ -93,8 +95,10 @@ common.listObjectsAll(s3, argv.bucket, function(err, objects) {
             'size'     : stat.size,
         });
     });
+
     emitter.on('end', function() {
         // console.log('Entire directory has been walked.');
+        fmt.field('WalkingDir', 'Finished');
     });
 });
 
@@ -139,6 +143,8 @@ function checkMd5IsSame(item, callback) {
 }
 
 function uploadItem(item, callback) {
+    fmt.field('Uploading', item.filename);
+
     // create a read stream
     var bodyStream = fs.createReadStream( item.filename );
 
@@ -146,7 +152,7 @@ function uploadItem(item, callback) {
         BucketName    : argv.bucket,
         ObjectName    : item.filename,
         ContentLength : item.size,
-        Body          : bodyStream
+        Body          : bodyStream,
     };
 
     s3.PutObject(options, function(err, data) {
