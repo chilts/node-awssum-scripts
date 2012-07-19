@@ -62,6 +62,23 @@ them.
     $ ./bin/amazon-s3-sync-down.js -b BUCKET_NAME
     $ ./bin/amazon-s3-sync-up.js -b BUCKET_NAME
 
+### amazon-s3-delete.js ###
+
+Deletes objects in a bucket:
+
+    $ ./bin/amazon-s3-delete.js --help
+    $ ./bin/amazon-s3-delete.js \
+          --bucket BUCKET_NAME \
+          [FILES...]
+
+### amazon-s3-find-duplicates.js ###
+
+Finds and lists any duplicate files in the bucket (ie. that have the same MD5 as any other file in the bucket):
+
+    $ ./bin/amazon-s3-find-duplicates.js --help
+    $ ./bin/amazon-s3-find-duplicates.js \
+          --bucket BUCKET_NAME
+
 # Author #
 
 Written by [Andrew Chilton](http://chilts.org/) - [Blog](http://chilts.org/blog/) - [Twitter](https://twitter.com/andychilton).
