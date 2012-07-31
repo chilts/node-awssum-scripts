@@ -41,7 +41,7 @@ var s3 = new S3({
 });
 
 fmt.sep();
-fmt.title('amazon-s3-sync-up.js');
+fmt.title('amazon-s3-delete.js');
 fmt.field('Bucket', argv.bucket);
 fmt.line();
 
