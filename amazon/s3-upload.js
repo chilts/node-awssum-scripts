@@ -55,6 +55,12 @@ var s3 = new S3({
 // var checkMd5IsSameQueue = async.queue(checkMd5IsSame, args.concurrency);
 var statItemQueue   = async.queue(statItem,   argv.concurrency);
 var uploadItemQueue = async.queue(uploadItem, argv.concurrency);
+uploadItemQueue.drain = function() {
+    fmt.line();
+    fmt.title('Finished');
+    fmt.field('UploadedFiles', argv._.length);
+    fmt.sep();
+};
 
 // for all the files given on the command line, add them to the first queue
 argv._.forEach(function(filename, i) {
