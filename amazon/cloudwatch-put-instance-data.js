@@ -72,9 +72,14 @@ nconf
     .env()
     .file({ file: osenv.home() + '/.awssum' })
     .defaults({
-        'test'        : false,
-        'concurrency' : 10,
-        'verbose'     : false,
+        'test'               : false,
+        'concurrency'        : 10,
+        'verbose'            : false,
+        'memory-utilization' : false,
+        'memory-used'        : false,
+        'memory-available'   : false,
+        'swap-utilization'   : false
+        'swap-used'          : false,
     });
 
 // get a few things from the config
@@ -280,16 +285,26 @@ function extractMemStats() {
     if ( memTotal > 0 ) {
         memUtil = 100 * memUsed / memTotal;
     }
-    appendMetricData('MemoryUtilization', 'Percent', memUtil);
-    appendMetricData('MemoryUsed', 'Kilobytes', memUsed);
-    appendMetricData('MemoryAvailable', 'Kilobytes', memAvail);
+    if ( nconf.get('memory-utilization') ) {
+        appendMetricData('MemoryUtilization', 'Percent', memUtil);
+    }
+    if ( nconf.get('memory-used') ) {
+        appendMetricData('MemoryUsed', 'Kilobytes', memUsed);
+    }
+    if ( nconf.get('memory-available') ) {
+        appendMetricData('MemoryAvailable', 'Kilobytes', memAvail);
+    }
 
     var swapUtil = 0;
     if ( swapTotal > 0 ) {
         swapUtil = 100 * swapUsed / swapTotal;
     }
-    appendMetricData('SwapUtilization', 'Percent', swapUtil);
-    appendMetricData('SwapUsed', 'Kilobytes', swapUsed);
+    if ( nconf.get('swap-utilization') ) {
+        appendMetricData('SwapUtilization', 'Percent', swapUtil);
+    }
+    if ( nconf.get('swap-used') ) {
+        appendMetricData('SwapUsed', 'Kilobytes', swapUsed);
+    }
 
     next();
 }
