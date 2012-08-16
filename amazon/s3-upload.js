@@ -105,6 +105,7 @@ function uploadItem(item, callback) {
     s3.PutObject(options, function(err, data) {
         if (err) {
             fmt.field('UploadFailed', item.filename);
+            console.log(err);
 
             // put this item back on the queue if retries is less than the cut-off
             if ( item.retries > 2 ) {
