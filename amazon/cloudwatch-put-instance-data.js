@@ -21,6 +21,7 @@ var async = require('async');
 var nconf = require('nconf');
 var osenv = require('osenv');
 var Seq   = require('seq');
+var oibackoff = require('oibackoff');
 
 var awssum     = require('awssum');
 var amazon     = awssum.load('amazon/amazon');
@@ -63,6 +64,13 @@ function li(msg) {
         console.log('* ' + msg);
     }
 }
+
+// backoff strategy
+var backoff = oibackoff.backoff({
+    'algorithm'  : 'exponential',
+    'delayRatio' : 0.2,
+    'maxTries'   : 3,
+});
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -121,7 +129,7 @@ function getInstanceId() {
         Version  : 'latest',
     }, function(err, data) {
         if (err) {
-            console.log("Can't get instance-id");
+            console.error("Can't get instance-id");
             next();
             return;
         }
@@ -142,7 +150,7 @@ function getRegion() {
         Version  : 'latest',
     }, function(err, data) {
         if (err) {
-            console.log("Can't get availability zone");
+            console.error("Can't get availability zone");
             next();
             return;
         }
@@ -323,9 +331,17 @@ function sendMetrics() {
         'secretAccessKey' : nconf.get('SECRET_ACCESS_KEY'),
         'region'          : region || 'us-east-1',
     });
-    cw.PutMetricData(opts, function(err, data) {
+
+    function send(callback) {
+        cw.PutMetricData(opts, callback);
+    }
+
+    msg('Performing PutMetricData ...');
+    backoff(send, function(err, data, priorErrors) {
+        msg('   ... finished');
         if (err) {
-            console.log("Can't PutMetricData " + err);
+            console.error("Can't PutMetricData : ", err);
+            console.error("PriorErrors         : ", err);
             next();
             return;
         }
