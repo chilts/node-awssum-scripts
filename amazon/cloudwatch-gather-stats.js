@@ -123,7 +123,7 @@ function getInstanceId() {
             return;
         }
         instanceId = data.Body;
-        msg('Getting instance id ... ' + instanceid);
+        msg('Getting instance id ... ' + instanceId);
         next();
     });
 }
