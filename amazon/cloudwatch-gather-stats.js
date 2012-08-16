@@ -146,7 +146,7 @@ function getRegion() {
         availZone = data.Body;
         region = availZone.substr(0, availZone.length-1);
         msg('Getting availability zone ... ' + availZone);
-        msg('Regions is ' + region);
+        msg('Region is ' + region);
         next();
     });
 }
