@@ -32,6 +32,10 @@ var argv = require('optimist')
     .default('c', 3)
     .describe('c', 'concurrency level for uploads/downloads')
 
+    .alias('d', 'dir')
+    .default('d', '.')
+    .describe('d', 'directory to sync')
+
     .describe('debug', 'to turn debugging on')
     .argv;
 
@@ -72,7 +76,7 @@ common.listObjectsAll(s3, argv.bucket, function(err, objects) {
 
     // get all the files in this directory down
     fmt.field('WalkingDir', 'Started');
-    var emitter = walk('./');
+    var emitter = walk(argv.dir);
 
     emitter.on('file', function(filename, stat) {
         var relativeFile = filename.substr(process.cwd().length + 1);
