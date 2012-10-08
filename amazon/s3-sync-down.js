@@ -60,7 +60,8 @@ var downloadItemQueue        = async.queue(downloadItem, argv.concurrency);
 
 common.listObjectsAll(s3, argv.bucket, function(err, objects) {
     if (err) {
-        fmt.field('Error', err);
+        fmt.field('Error:' );
+        fmt.dump(err);
         return;
     }
 
