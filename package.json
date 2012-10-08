@@ -13,7 +13,7 @@
   "devDependencies": {},
   "dependencies": {
     "eyes": ">= 0.1.1",
-    "awssum": ">= 0.6.1",
+    "awssum": ">= 0.11.0",
     "optimist": ">= 0.3.4",
     "async": "~0.1.18",
     "fmt": "~0.4.0",
